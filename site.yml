@@ -32,6 +32,7 @@
         name: '{{ vmware_guest_name }}'
         datacenter: "{{ __datacenter }}"
         folder: "{{ __folder }}"
+      delegate_to: localhost
       register: __snapshot_info
 
     - name: "End play for hosts without snapshots"
