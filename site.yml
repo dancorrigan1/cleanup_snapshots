@@ -1,0 +1,85 @@
+---
+- name: "End play for non Vmware VMs"
+  ansible.builtin.meta: end_host
+  when: config.name is not defined
+
+- name: "Find VM folder and datacenter"
+  community.vmware.vmware_guest_find:
+    hostname: '{{ vcenter_hostname }}'
+    username: '{{ vcenter_username }}'
+    password: '{{ vcenter_password }}'
+    validate_certs: false
+    name: '{{ vmware_guest_name }}'
+  delegate_to: localhost
+  register: __vm_find_results
+
+- name: "Set VM folder and datacenter"
+  ansible.builtin.set_fact:
+    __folder: "{{ __vm_find_results.folders[0] }}"
+    __datacenter: "{{ __vm_find_results.folders[0].split('/')[1] }}"
+
+- name: "Gather snapshot information"
+  community.vmware.vmware_guest_snapshot_info:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    datacenter: "{{ __datacenter }}"
+    folder: "{{ __folder }}"
+  register: __snapshot_info
+
+- name: "End play for hosts without snapshots"
+  ansible.builtin.meta: end_host
+  when: __snapshot_info.guest_snapshots.snapshots is not defined
+
+- name: "Build array of snapshots to remove"
+  ansible.builtin.set_fact:
+    __snapshots_to_remove: >-
+      {%- set __snapshots_to_remove = [] -%}
+      {%- set snapshot_guest_name = 'snapshot_guest_name' -%}
+      {%- set snapshot_name = 'snapshot_name' -%}
+      {%- set snapshot_vm_datacenter = 'snapshot_vm_datacenter' -%}
+      {%- set snapshot_vm_uuid = 'snapshot_vm_uuid' -%}
+      {%- set snapshot_description = 'snapshot_description' -%}
+      {%- set snapshot_expired = 'snapshot_expired' -%}
+      {%- for snapshot in __snapshot_info.guest_snapshots.snapshots -%}
+        {%- set __expired = 'true' if (now(utc=true,fmt='%Y-%m-%d %H:%M:%S') | to_datetime('%Y-%m-%d %H:%M:%S') -
+          snapshot.creation_time.split('.') | first | to_datetime('%Y-%m-%dT%H:%M:%S')).days > 7
+          else 'false' -%}
+        {%- set item_dict = {
+          snapshot_guest_name: vmware_guest_name,
+          snapshot_name: snapshot.name,
+          snapshot_vm_datacenter: __datacenter,
+          snapshot_vm_folder: __folder,
+          snapshot_description: snapshot.description,
+          snapshot_expired: __expired,
+          }
+        -%}
+        {%- set __snapshots_to_remove = __snapshots_to_remove.append(item_dict) -%}
+      {%- endfor -%}
+      {{ __snapshots_to_remove }}
+
+- name: "Remove VM snapshots"
+  community.vmware.vmware_guest_snapshot:
+    hostname: "{{ vcenter_hostname }}"
+    username: "{{ vcenter_username }}"
+    password: "{{ vcenter_password }}"
+    validate_certs: false
+    datacenter: "{{ snapshot.snapshot_vm_datacenter }}"
+    folder: "{{ snapshot.snapshot_vm_folder }}"
+    name: "{{ snapshot.snapshot_guest_name }}"
+    state: "absent"
+    snapshot_name: "{{ snapshot.snapshot_name }}"
+  throttle: 1
+  loop: "{{ __snapshots_to_remove }}"
+  loop_control:
+    loop_var: snapshot
+    label: >-
+      Removing snapshot '{{ snapshot.snapshot_name }}' from '{{ snapshot.snapshot_guest_name }}' ({{ snapshot_number + 1 }} / {{ ansible_loop.length }})
+    index_var: snapshot_number
+    extended: true
+    extended_allitems: false
+  when:
+    - snapshot.snapshot_expired == 'true' or force_remove | bool
+  delegate_to: localhost
+...
