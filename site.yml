@@ -46,7 +46,7 @@
           {%- set snapshot_guest_name = 'snapshot_guest_name' -%}
           {%- set snapshot_name = 'snapshot_name' -%}
           {%- set snapshot_vm_datacenter = 'snapshot_vm_datacenter' -%}
-          {%- set snapshot_vm_uuid = 'snapshot_vm_uuid' -%}
+          {%- set snapshot_vm_folder = 'snapshot_vm_folder' -%}
           {%- set snapshot_description = 'snapshot_description' -%}
           {%- set snapshot_expired = 'snapshot_expired' -%}
           {%- for snapshot in __snapshot_info.guest_snapshots.snapshots -%}
