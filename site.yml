@@ -86,7 +86,6 @@
         index_var: snapshot_number
         extended: true
         extended_allitems: false
-      when:
-          - snapshot.snapshot_expired == 'true' or (force_remove | default(false) | bool)
+      when: snapshot.snapshot_expired == 'true' or (force_remove | default(false) | bool)
       delegate_to: localhost
 ...
