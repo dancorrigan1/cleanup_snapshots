@@ -6,7 +6,7 @@
 
     - name: "End play for non Vmware VMs"
       ansible.builtin.meta: end_host
-      when: config.name is not defined
+      when: vmware_guest_name is not defined
 
     - name: "Find VM folder and datacenter"
       community.vmware.vmware_guest_find:
