@@ -8,21 +8,6 @@
       ansible.builtin.meta: end_host
       when: vmware_guest_name is not defined
 
-    - name: "Find VM folder and datacenter"
-      community.vmware.vmware_guest_find:
-        hostname: '{{ vcenter_hostname }}'
-        username: '{{ vcenter_username }}'
-        password: '{{ vcenter_password }}'
-        validate_certs: false
-        name: '{{ vmware_guest_name }}'
-      delegate_to: localhost
-      register: __vm_find_results
-
-    - name: "Set VM folder and datacenter"
-      ansible.builtin.set_fact:
-        __folder: "{{ __vm_find_results.folders[0] }}"
-        __datacenter: "{{ __vm_find_results.folders[0].split('/')[1] }}"
-
     - name: "Gather snapshot information"
       community.vmware.vmware_guest_snapshot_info:
         hostname: "{{ vcenter_hostname }}"
@@ -30,8 +15,8 @@
         password: "{{ vcenter_password }}"
         validate_certs: false
         name: '{{ vmware_guest_name }}'
-        datacenter: "{{ __datacenter }}"
-        folder: "{{ __folder }}"
+        datacenter: "{{ vmware_guest_datacenter }}"
+        folder: "{{ vmware_guest_folder }}"
       delegate_to: localhost
       register: __snapshot_info
 
@@ -56,8 +41,8 @@
             {%- set item_dict = {
               snapshot_guest_name: vmware_guest_name,
               snapshot_name: snapshot.name,
-              snapshot_vm_datacenter: __datacenter,
-              snapshot_vm_folder: __folder,
+              snapshot_vm_datacenter: vmware_guest_datacenter,
+              snapshot_vm_folder: vmware_guest_folder,
               snapshot_description: snapshot.description,
               snapshot_expired: __expired,
               }
