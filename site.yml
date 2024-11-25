@@ -10,10 +10,6 @@
 
     - name: "Gather snapshot information"
       community.vmware.vmware_guest_snapshot_info:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: false
         name: '{{ vmware_guest_name }}'
         datacenter: "{{ vmware_guest_datacenter }}"
         folder: "{{ vmware_guest_folder }}"
@@ -53,10 +49,6 @@
 
     - name: "Remove VM snapshots"
       community.vmware.vmware_guest_snapshot:
-        hostname: "{{ vcenter_hostname }}"
-        username: "{{ vcenter_username }}"
-        password: "{{ vcenter_password }}"
-        validate_certs: false
         datacenter: "{{ snapshot.snapshot_vm_datacenter }}"
         folder: "{{ snapshot.snapshot_vm_folder }}"
         name: "{{ snapshot.snapshot_guest_name }}"
